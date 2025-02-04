@@ -1,30 +1,45 @@
-import 'package:sqflite/sqflite.dart';
-import 'package:path/path.dart';
 
-class DatabaseHelper {
-  // Getter to obtain the database; it will be created automatically if it doesn't exist.
-  static Future<Database> get database async {
-    return openDatabase(
-      join(await getDatabasesPath(), 'doctor_app.db'),
-      version: 1, // Increase this number if you update the schema.
-      onCreate: (db, version) async {
-        // Create the 'admin' table.
+        // Create the appointments table with foreign keys.
         await db.execute(
-            "CREATE TABLE admin(id INTEGER PRIMARY KEY AUTOINCREMENT, username TEXT UNIQUE, password TEXT);"
+            "CREATE TABLE appointments(id INTEGER PRIMARY KEY AUTOINCREMENT, patientId INTEGER, doctorId INTEGER, date TEXT, "
+                "FOREIGN KEY(patientId) REFERENCES patients(id), FOREIGN KEY(doctorId) REFERENCES doctors(id));"
         );
-        // Insert an initial admin record.
+
+        // Create the users table with columns for role and password.
+        await db.execute(
+            "CREATE TABLE users(id INTEGER PRIMARY KEY AUTOINCREMENT, username TEXT, email TEXT, password TEXT, role TEXT);"
+        );
+
+        // Insert an initial user record (for example: an admin user).
         await db.insert(
-          'admin',
-          {'username': 'admin', 'password': 'admin123'},
+          'users',
+          {
+            'username': 'admin',
+            'email': 'admin@example.com',
+            'password': 'admin123',
+            'role': 'admin'
+          },
           conflictAlgorithm: ConflictAlgorithm.replace,
         );
 
-        // Create the patients table.
+        // (Optional) Create the products table.
         await db.execute(
-            "CREATE TABLE patients(id INTEGER PRIMARY KEY AUTOINCREMENT, name TEXT, age INTEGER);"
+            "CREATE TABLE products(id INTEGER PRIMARY KEY AUTOINCREMENT, name TEXT, price DOUBLE);"
         );
+      },
+    );
+  }
 
-        // Create the doctors table.
-        await db.execute(
-            "CREATE TABLE doctors(id INTEGER PRIMARY KEY AUTOINCREMENT, name TEXT, specialty TEXT);"
-        );
+  // Method to get a user (for example, during login).
+  static Future<Map<String, dynamic>?> getUser(String username, String password) async {
+    final db = await database;
+    final res = await db.query(
+      'users',
+      where: 'username = ? AND password = ?',
+      whereArgs: [username, password],
+    );
+    if (res.isNotEmpty) {
+      return res.first;
+    }
+    return null;
+  }
