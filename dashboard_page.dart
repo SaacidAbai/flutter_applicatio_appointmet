@@ -1,26 +1,18 @@
-  Widget build(BuildContext context) {
-    return Scaffold(
-      appBar: AppBar(
-        title: Text('Dashboard (${widget.role})'),
-        actions: [
-          IconButton(
-            icon: Icon(Icons.logout),
-            onPressed: _logout,
+          child: BottomNavigationBar(
+            type: BottomNavigationBarType.fixed,
+            items: _navItems,
+            currentIndex: _selectedIndex,
+            selectedItemColor: Colors.blue,
+            unselectedItemColor: Colors.grey,
+            backgroundColor: Colors.white,
+            elevation: 10,
+            onTap: _onItemTapped,
+            showUnselectedLabels: true,
+            selectedFontSize: 14,
+            unselectedFontSize: 12,
           ),
-        ],
-      ),
-      body: _pages[_selectedIndex],
-      bottomNavigationBar: Container(
-        decoration: BoxDecoration(
-          borderRadius: BorderRadius.only(
-            topLeft: Radius.circular(20),
-            topRight: Radius.circular(20),
-          ),
-          boxShadow: [
-            BoxShadow(
-              color: Colors.black26,
-              blurRadius: 10,
-              spreadRadius: 2,
-            ),
-          ],
         ),
+      ),
+    );
+  }
+}
