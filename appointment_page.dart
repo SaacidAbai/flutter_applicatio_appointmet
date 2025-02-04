@@ -1,40 +1,89 @@
 
-  void updateAppointment(int id) async {
-    String date = _dateController.text;
-    if (selectedPatientId != null &&
-        selectedDoctorId != null &&
-        date.isNotEmpty) {
-      await DatabaseHelper.updateAppointment(id, {
-        'patientId': selectedPatientId,
-        'doctorId': selectedDoctorId,
-        'date': date,
-      });
-      _dateController.clear();
+  Future<void> _selectDate(BuildContext context) async {
+    DateTime initialDate =
+        DateTime.tryParse(_dateController.text) ?? DateTime.now();
+    final DateTime? picked = await showDatePicker(
+      context: context,
+      initialDate: initialDate,
+      firstDate: DateTime(2000),
+      lastDate: DateTime(2100),
+      builder: (BuildContext context, Widget? child) {
+        return Theme(
+          data: ThemeData.light().copyWith(
+            colorScheme: ColorScheme.light(
+              primary: Colors.deepPurple,
+              onPrimary: Colors.white,
+              surface: Colors.deepPurpleAccent,
+              onSurface: Colors.black,
+            ),
+            dialogBackgroundColor: Colors.white,
+          ),
+          child: child!,
+        );
+      },
+    );
+    if (picked != null) {
       setState(() {
-        selectedAppointmentId = null; // إعادة تعيين المتغير بعد التحديث
+        // تنسيق التاريخ بالشكل YYYY-MM-DD
+        _dateController.text = picked.toIso8601String().split('T').first;
       });
-      loadAppointments();
     }
   }
 
-  void deleteAppointment(int id) async {
-    await DatabaseHelper.deleteAppointment(id);
-    loadAppointments();
-  }
-
-  // دوال مساعدة لاسترجاع اسم المريض والطبيب من الـ id
-  String getPatientName(int patientId) {
-    var patient = patients.firstWhere(
-          (element) => element['id'] == patientId,
-      orElse: () => {},
-    );
-    return patient.isNotEmpty ? patient['name'] : '';
-  }
-
-  String getDoctorName(int doctorId) {
-    var doctor = doctors.firstWhere(
-          (element) => element['id'] == doctorId,
-      orElse: () => {},
-    );
-    return doctor.isNotEmpty ? doctor['name'] : '';
-  }
+  @override
+  Widget build(BuildContext context) {
+    return Scaffold(
+      appBar: AppBar(
+        title: Text('Appointment Registration'),
+        backgroundColor: Colors.deepPurple,
+      ),
+      body: SingleChildScrollView(
+        child: Padding(
+          padding: const EdgeInsets.all(16.0),
+          child: Column(
+            children: [
+              // بطاقة تسجيل الموعد
+              Card(
+                elevation: 4,
+                shape: RoundedRectangleBorder(
+                    borderRadius: BorderRadius.circular(10)),
+                child: Padding(
+                  padding: const EdgeInsets.all(16.0),
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      Text(
+                        'Register Appointment',
+                        style: TextStyle(
+                            fontSize: 20, fontWeight: FontWeight.bold),
+                      ),
+                      SizedBox(height: 20),
+                      // Dropdown لاختيار المريض
+                      Row(
+                        children: [
+                          Icon(Icons.person, color: Colors.deepPurple),
+                          SizedBox(width: 10),
+                          Expanded(
+                            child: DropdownButtonFormField<int>(
+                              decoration: InputDecoration(
+                                labelText: 'Select Patient',
+                                border: OutlineInputBorder(
+                                  borderRadius: BorderRadius.circular(10),
+                                ),
+                              ),
+                              value: selectedPatientId,
+                              items: patients.map((patient) {
+                                return DropdownMenuItem<int>(
+                                  value: patient['id'] as int,
+                                  child: Text(patient['name']),
+                                );
+                              }).toList(),
+                              onChanged: (value) {
+                                setState(() {
+                                  selectedPatientId = value;
+                                });
+                              },
+                            ),
+                          ),
+                        ],
+                      ),
