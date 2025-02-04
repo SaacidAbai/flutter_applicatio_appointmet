@@ -1,47 +1,28 @@
-import 'package:flutter/material.dart';
-import 'database_helper.dart';
 
-class AppointmentPage extends StatefulWidget {
-  @override
-  _AppointmentPageState createState() => _AppointmentPageState();
-}
 
-class _AppointmentPageState extends State<AppointmentPage> {
-  List<Map<String, dynamic>> appointments = [];
-  List<Map<String, dynamic>> patients = [];
-  List<Map<String, dynamic>> doctors = [];
-
-  int? selectedPatientId;
-  int? selectedDoctorId;
-  int? selectedAppointmentId; // معرف الموعد المختار للتحديث
-
-  TextEditingController _dateController = TextEditingController();
-
-  @override
-  void initState() {
-    super.initState();
-    loadAppointments();
-    loadPatients();
-    loadDoctors();
-  }
-
-  void loadAppointments() async {
+  void loadDoctors() async {
     final db = await DatabaseHelper.database;
-    final data = await db.query('appointments');
+    final data = await db.query('doctors');
     setState(() {
-      appointments = data;
-    });
-  }
-
-  void loadPatients() async {
-    final db = await DatabaseHelper.database;
-    final data = await db.query('patients');
-    setState(() {
-      patients = data;
-      // إذا لم يتم تحديد مريض مسبقاً يتم اختيار الأول افتراضيًا
-      if (data.isNotEmpty && selectedPatientId == null) {
-        selectedPatientId = data.first['id'] as int;
+      doctors = data;
+      // إذا لم يتم تحديد طبيب مسبقاً يتم اختيار الأول افتراضيًا
+      if (data.isNotEmpty && selectedDoctorId == null) {
+        selectedDoctorId = data.first['id'] as int;
       }
     });
   }
 
+  void addAppointment() async {
+    String date = _dateController.text;
+    if (selectedPatientId != null &&
+        selectedDoctorId != null &&
+        date.isNotEmpty) {
+      await DatabaseHelper.insertAppointment({
+        'patientId': selectedPatientId,
+        'doctorId': selectedDoctorId,
+        'date': date,
+      });
+      _dateController.clear();
+      loadAppointments();
+    }
+  }
