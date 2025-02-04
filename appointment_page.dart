@@ -1,48 +1,98 @@
-
-  Future<void> _selectDate(BuildContext context) async {
-    DateTime initialDate =
-        DateTime.tryParse(_dateController.text) ?? DateTime.now();
-    final DateTime? picked = await showDatePicker(
-      context: context,
-      initialDate: initialDate,
-      firstDate: DateTime(2000),
-      lastDate: DateTime(2100),
-      builder: (BuildContext context, Widget? child) {
-        return Theme(
-          data: ThemeData.light().copyWith(
-            colorScheme: ColorScheme.light(
-              primary: Colors.deepPurple,
-              onPrimary: Colors.white,
-              surface: Colors.deepPurpleAccent,
-              onSurface: Colors.black,
-            ),
-            dialogBackgroundColor: Colors.white,
-          ),
-          child: child!,
-        );
-      },
-    );
-    if (picked != null) {
-      setState(() {
-        // تنسيق التاريخ بالشكل YYYY-MM-DD
-        _dateController.text = picked.toIso8601String().split('T').first;
-      });
-    }
-  }
-
-  @override
-  Widget build(BuildContext context) {
-    return Scaffold(
-      appBar: AppBar(
-        title: Text('Appointment Registration'),
-        backgroundColor: Colors.deepPurple,
-      ),
-      body: SingleChildScrollView(
-        child: Padding(
-          padding: const EdgeInsets.all(16.0),
-          child: Column(
-            children: [
-              // بطاقة تسجيل الموعد
+  // Dropdown لاختيار الطبيب
+                      Row(
+                        children: [
+                          Icon(Icons.local_hospital,
+                              color: Colors.deepPurple),
+                          SizedBox(width: 10),
+                          Expanded(
+                            child: DropdownButtonFormField<int>(
+                              decoration: InputDecoration(
+                                labelText: 'Select Doctor',
+                                border: OutlineInputBorder(
+                                  borderRadius: BorderRadius.circular(10),
+                                ),
+                              ),
+                              value: selectedDoctorId,
+                              items: doctors.map((doctor) {
+                                return DropdownMenuItem<int>(
+                                  value: doctor['id'] as int,
+                                  child: Text(doctor['name']),
+                                );
+                              }).toList(),
+                              onChanged: (value) {
+                                setState(() {
+                                  selectedDoctorId = value;
+                                });
+                              },
+                            ),
+                          ),
+                        ],
+                      ),
+                      SizedBox(height: 20),
+                      // حقل اختيار التاريخ باستخدام التقويم
+                      Row(
+                        children: [
+                          Icon(Icons.calendar_today,
+                              color: Colors.deepPurple),
+                          SizedBox(width: 10),
+                          Expanded(
+                            child: TextField(
+                              controller: _dateController,
+                              readOnly: true,
+                              decoration: InputDecoration(
+                                labelText: 'Select Date',
+                                border: OutlineInputBorder(
+                                  borderRadius: BorderRadius.circular(10),
+                                ),
+                                suffixIcon: Icon(Icons.arrow_drop_down,
+                                    color: Colors.deepPurple),
+                              ),
+                              onTap: () {
+                                _selectDate(context);
+                              },
+                            ),
+                          ),
+                        ],
+                      ),
+                      SizedBox(height: 20),
+                      // أزرار الإضافة والتحديث
+                      Row(
+                        mainAxisAlignment: MainAxisAlignment.spaceEvenly,
+                        children: [
+                          ElevatedButton.icon(
+                            style: ElevatedButton.styleFrom(
+                              backgroundColor: Colors.deepPurple,
+                              shape: RoundedRectangleBorder(
+                                borderRadius: BorderRadius.circular(10),
+                              ),
+                            ),
+                            onPressed: addAppointment,
+                            icon: Icon(Icons.add),
+                            label: Text('Add'),
+                          ),
+                          ElevatedButton.icon(
+                            style: ElevatedButton.styleFrom(
+                              backgroundColor: Colors.orange,
+                              shape: RoundedRectangleBorder(
+                                borderRadius: BorderRadius.circular(10),
+                              ),
+                            ),
+                            onPressed: () {
+                              if (selectedAppointmentId != null) {
+                                updateAppointment(selectedAppointmentId!);
+                              }
+                            },
+                            icon: Icon(Icons.update),
+                            label: Text('Update'),
+                          ),
+                        ],
+                      ),
+                    ],
+                  ),
+                ),
+              ),
+              SizedBox(height: 30),
+              // بطاقة قائمة المواعيد
               Card(
                 elevation: 4,
                 shape: RoundedRectangleBorder(
@@ -53,37 +103,91 @@
                     crossAxisAlignment: CrossAxisAlignment.start,
                     children: [
                       Text(
-                        'Register Appointment',
+                        'Appointments List',
                         style: TextStyle(
-                            fontSize: 20, fontWeight: FontWeight.bold),
+                            fontSize: 18, fontWeight: FontWeight.bold),
                       ),
-                      SizedBox(height: 20),
-                      // Dropdown لاختيار المريض
-                      Row(
-                        children: [
-                          Icon(Icons.person, color: Colors.deepPurple),
-                          SizedBox(width: 10),
-                          Expanded(
-                            child: DropdownButtonFormField<int>(
-                              decoration: InputDecoration(
-                                labelText: 'Select Patient',
-                                border: OutlineInputBorder(
-                                  borderRadius: BorderRadius.circular(10),
+                      SizedBox(height: 10),
+                      SingleChildScrollView(
+                        scrollDirection: Axis.horizontal,
+                        child: DataTable(
+                          headingRowColor: MaterialStateProperty.all(
+                              Colors.deepPurple.shade100),
+                          dataRowColor: MaterialStateProperty.all(
+                              Colors.grey.shade50),
+                          columns: const [
+                            DataColumn(
+                                label: Text('ID',
+                                    style: TextStyle(
+                                        fontWeight: FontWeight.bold))),
+                            DataColumn(
+                                label: Text('Patient',
+                                    style: TextStyle(
+                                        fontWeight: FontWeight.bold))),
+                            DataColumn(
+                                label: Text('Doctor',
+                                    style: TextStyle(
+                                        fontWeight: FontWeight.bold))),
+                            DataColumn(
+                                label: Text('Date',
+                                    style: TextStyle(
+                                        fontWeight: FontWeight.bold))),
+                            DataColumn(
+                                label: Text('Actions',
+                                    style: TextStyle(
+                                        fontWeight: FontWeight.bold))),
+                          ],
+                          rows: appointments.map((appointment) {
+                            return DataRow(
+                              cells: [
+                                DataCell(Text(appointment['id'].toString())),
+                                DataCell(Text(getPatientName(
+                                    appointment['patientId'] as int))),
+                                DataCell(Text(getDoctorName(
+                                    appointment['doctorId'] as int))),
+                                DataCell(Text(appointment['date'])),
+                                DataCell(
+                                  Row(
+                                    children: [
+                                      IconButton(
+                                        icon: Icon(Icons.edit,
+                                            color: Colors.blue),
+                                        onPressed: () {
+                                          setState(() {
+                                            // حفظ بيانات الموعد المختار
+                                            selectedAppointmentId =
+                                            appointment['id'] as int;
+                                            selectedPatientId =
+                                            appointment['patientId'] as int;
+                                            selectedDoctorId =
+                                            appointment['doctorId'] as int;
+                                            _dateController.text =
+                                            appointment['date'];
+                                          });
+                                        },
+                                      ),
+                                      IconButton(
+                                        icon: Icon(Icons.delete,
+                                            color: Colors.red),
+                                        onPressed: () => deleteAppointment(
+                                            appointment['id'] as int),
+                                      ),
+                                    ],
+                                  ),
                                 ),
-                              ),
-                              value: selectedPatientId,
-                              items: patients.map((patient) {
-                                return DropdownMenuItem<int>(
-                                  value: patient['id'] as int,
-                                  child: Text(patient['name']),
-                                );
-                              }).toList(),
-                              onChanged: (value) {
-                                setState(() {
-                                  selectedPatientId = value;
-                                });
-                              },
-                            ),
-                          ),
-                        ],
+                              ],
+                            );
+                          }).toList(),
+                        ),
                       ),
+                    ],
+                  ),
+                ),
+              ),
+            ],
+          ),
+        ),
+    ),
+);
+}
+}
