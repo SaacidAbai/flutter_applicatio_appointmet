@@ -1,26 +1,5 @@
 import 'package:flutter/material.dart';
-import 'database_helper.dart';
 
-class DoctorPage extends StatefulWidget {
-  @override
-  _DoctorPageState createState() => _DoctorPageState();
-}
-
-class _DoctorPageState extends State<DoctorPage> {
-  List<Map<String, dynamic>> doctors = [];
-  TextEditingController _nameController = TextEditingController();
-  TextEditingController _specialtyController = TextEditingController();
-  int? _selectedDoctorId; // ID of the doctor being edited
-
-  @override
-  void initState() {
-    super.initState();
-    loadDoctors();
-  }
-
-  // Load doctors from the database
-  void loadDoctors() async {
-    final db = await DatabaseHelper.database;
     final data = await db.query('doctors');
     setState(() {
       doctors = data;
